@@ -1,7 +1,11 @@
 import express from "express";
 import dotenv from "dotenv";
-import axios from "axios";
 import cors from "cors";
+import fs from "fs";
+import path from "path";
+
+// Use require instead of import for axios to avoid ESM issues
+const axios = require("axios");
 
 dotenv.config();
 
@@ -10,14 +14,32 @@ const PORT = process.env.PORT || 10000;
 app.use(express.json());
 app.use(cors());
 
-// ---------------- In-memory token store ----------------
-/**
- * @typedef {Object} Tokens
- * @property {string} accessToken
- * @property {string} refreshToken
- * @property {number=} expiresAt
- */
-const tokensByUser = new Map(); // Map<string, Tokens>
+// ---------------- Persistent token store ----------------
+const TOKEN_FILE = path.join(__dirname, "tokens.json");
+let tokensByUser = new Map();
+
+function loadTokens() {
+  try {
+    if (fs.existsSync(TOKEN_FILE)) {
+      const raw = fs.readFileSync(TOKEN_FILE, "utf-8");
+      const obj = JSON.parse(raw);
+      tokensByUser = new Map(Object.entries(obj));
+    }
+  } catch (e) {
+    console.error("⚠️ Failed to load tokens.json", e.message);
+  }
+}
+
+function saveTokens() {
+  try {
+    const obj = Object.fromEntries(tokensByUser);
+    fs.writeFileSync(TOKEN_FILE, JSON.stringify(obj, null, 2));
+  } catch (e) {
+    console.error("⚠️ Failed to save tokens.json", e.message);
+  }
+}
+
+loadTokens();
 
 // ---------------- Helpers ----------------
 async function ensureFreshToken(userId) {
@@ -26,7 +48,7 @@ async function ensureFreshToken(userId) {
 
   if (!t.expiresAt || Date.now() < t.expiresAt - 60_000) return t;
 
-  // Refresh
+  // Refresh token logic
   const { data } = await axios.get("https://graph.facebook.com/v21.0/oauth/access_token", {
     params: {
       grant_type: "fb_exchange_token",
@@ -42,6 +64,7 @@ async function ensureFreshToken(userId) {
     expiresAt: Date.now() + data.expires_in * 1000,
   };
   tokensByUser.set(userId, newTokens);
+  saveTokens();
   return newTokens;
 }
 
@@ -82,6 +105,7 @@ app.get("/auth/meta/callback", async (req, res) => {
       refreshToken: data.access_token, // use short-term as refresh basis
       expiresAt: Date.now() + data.expires_in * 1000,
     });
+    saveTokens();
 
     res.send(`<h1>✅ Meta Ads Connected!</h1>
               <p>User: ${state}</p>
