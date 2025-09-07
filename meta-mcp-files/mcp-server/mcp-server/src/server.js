@@ -1,11 +1,7 @@
 import express from "express";
 import dotenv from "dotenv";
 import cors from "cors";
-import fs from "fs";
-import path from "path";
-
 import axios from "axios";
-
 
 dotenv.config();
 
@@ -14,32 +10,8 @@ const PORT = process.env.PORT || 10000;
 app.use(express.json());
 app.use(cors());
 
-// ---------------- Persistent token store ----------------
-const TOKEN_FILE = path.join(__dirname, "tokens.json");
-let tokensByUser = new Map();
-
-function loadTokens() {
-  try {
-    if (fs.existsSync(TOKEN_FILE)) {
-      const raw = fs.readFileSync(TOKEN_FILE, "utf-8");
-      const obj = JSON.parse(raw);
-      tokensByUser = new Map(Object.entries(obj));
-    }
-  } catch (e) {
-    console.error("⚠️ Failed to load tokens.json", e.message);
-  }
-}
-
-function saveTokens() {
-  try {
-    const obj = Object.fromEntries(tokensByUser);
-    fs.writeFileSync(TOKEN_FILE, JSON.stringify(obj, null, 2));
-  } catch (e) {
-    console.error("⚠️ Failed to save tokens.json", e.message);
-  }
-}
-
-loadTokens();
+// ---------------- In-memory token store ----------------
+const tokensByUser = new Map(); // Map<userId, { accessToken, refreshToken, expiresAt }>
 
 // ---------------- Helpers ----------------
 async function ensureFreshToken(userId) {
@@ -48,7 +20,6 @@ async function ensureFreshToken(userId) {
 
   if (!t.expiresAt || Date.now() < t.expiresAt - 60_000) return t;
 
-  // Refresh token logic
   const { data } = await axios.get("https://graph.facebook.com/v21.0/oauth/access_token", {
     params: {
       grant_type: "fb_exchange_token",
@@ -64,7 +35,6 @@ async function ensureFreshToken(userId) {
     expiresAt: Date.now() + data.expires_in * 1000,
   };
   tokensByUser.set(userId, newTokens);
-  saveTokens();
   return newTokens;
 }
 
@@ -102,14 +72,13 @@ app.get("/auth/meta/callback", async (req, res) => {
 
     tokensByUser.set(state, {
       accessToken: data.access_token,
-      refreshToken: data.access_token, // use short-term as refresh basis
+      refreshToken: data.access_token,
       expiresAt: Date.now() + data.expires_in * 1000,
     });
-    saveTokens();
 
     res.send(`<h1>✅ Meta Ads Connected!</h1>
               <p>User: ${state}</p>
-              <p>Token saved, you can now use Claude tools.</p>`);
+              <p>Token saved in memory, you can now use Claude tools.</p>`);
   } catch (err) {
     res.status(500).json({ error: "OAuth exchange failed", details: err?.message });
   }
