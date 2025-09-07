@@ -141,7 +141,7 @@ class MetaAdsMCPServer {
           jsonrpc: '2.0',
           id,
           result: {
-            protocolVersion: '2025-06-18',
+            protocolVersion: '2024-11-05',
             capabilities: {
               tools: { 
                 listChanged: true 
