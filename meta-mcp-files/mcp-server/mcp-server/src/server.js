@@ -4,8 +4,8 @@ import cors from "cors";
 import fs from "fs";
 import path from "path";
 
-// Use require instead of import for axios to avoid ESM issues
-const axios = require("axios");
+import axios from "axios";
+
 
 dotenv.config();
 
