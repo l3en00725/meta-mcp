@@ -1,0 +1,41 @@
+{
+  "name": "@businessmcp/meta-ads-server",
+  "version": "1.0.0",
+  "description": "Meta Ads MCP Server powered by Pipedream Connect",
+  "main": "src/server.js",
+  "type": "module",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "nodemon src/server.js",
+    "test": "node src/test.js",
+    "lint": "eslint src/",
+    "build": "echo 'No build step required'"
+  },
+  "keywords": [
+    "mcp",
+    "meta-ads",
+    "facebook-ads",
+    "claude",
+    "ai",
+    "business-intelligence"
+  ],
+  "author": "Benjamin Haberman",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.18.2",
+    "cors": "^2.8.5",
+    "dotenv": "^16.3.1"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1",
+    "eslint": "^8.52.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/l3en00725/meta-mcp.git",
+    "directory": "mcp-server"
+  }
+}
