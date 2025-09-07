@@ -180,20 +180,22 @@ class MetaAdsMCPServer {
         const { name, arguments: args } = params;
         console.log(`🔧 Tool call: ${name}`, args);
         
-        // Skip auth check for now to test basic functionality
-        // const isAuthenticated = await this.checkUserAuth(userId);
-        // if (!isAuthenticated) {
-        //   return res.json({
-        //     jsonrpc: '2.0',
-        //     id,
-        //     result: {
-        //       content: [{
-        //         type: 'text',
-        //         text: `🔐 Meta Ads authentication required!\n\n🔗 Connect your Meta Ads account: ${this.getAuthURL(userId)}\n\nAfter connecting, please try your request again.`
-        //       }]
-        //     }
-        //   });
-        // }
+        // Check if Pipedream API key is configured
+        if (!this.pipedreamApiKey || this.pipedreamApiKey === 'YOUR_API_KEY_HERE') {
+          return res.json({
+            jsonrpc: '2.0',
+            id,
+            result: {
+              content: [{
+                type: 'text',
+                text: `🔐 Pipedream API key required!\n\n` +
+                      `Please set PIPEDREAM_API_KEY environment variable with your API key.\n` +
+                      `Get it from: https://pipedream.com/settings/api\n\n` +
+                      `Your current key: ${this.pipedreamApiKey ? this.pipedreamApiKey.substring(0, 8) + '...' : 'not set'}`
+              }]
+            }
+          });
+        }
 
         const result = await this.executeTool(name, args, userId);
         
